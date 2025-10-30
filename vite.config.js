@@ -10,4 +10,8 @@ export default defineConfig({
     tailwindcss(),
     react()
   ],
+  build: {
+    cssMinify: false, // Desactivar minificación CSS para evitar errores
+    minify: 'esbuild'
+  }
 })
