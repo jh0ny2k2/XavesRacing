@@ -51,7 +51,6 @@ const Login = ({ onSwitchToRegister }) => {
       const { user } = await signIn(formData.email, formData.password)
 
       console.log('✅ Login exitoso:', user)
-      setSuccess('¡Inicio de sesión exitoso! Redirigiendo...')
       
       // Limpiar formulario
       setFormData({
@@ -66,7 +65,16 @@ const Login = ({ onSwitchToRegister }) => {
       // Recargar el estado para asegurar sincronización
       console.log('🔄 Recargando estado del usuario...')
       await reload()
-      console.log('🔄 Estado del usuario recargado, redirección automática al dashboard...')
+      console.log('🔄 Estado del usuario recargado')
+      
+      // Mostrar mensaje de éxito solo después de actualizar el estado
+      setSuccess('¡Inicio de sesión exitoso! Redirigiendo...')
+      console.log('🔄 Redirección automática al dashboard...')
+      
+      // Recarga automática para forzar la redirección
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
 
     } catch (err) {
       console.error('❌ Error en login:', err.message)

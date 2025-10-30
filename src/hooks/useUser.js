@@ -8,14 +8,12 @@ export const useUser = () => {
 
   // Función para cargar el usuario actual
   const loadUser = async () => {
+    setLoading(true)
+    setError(null)
+    
     try {
-      setLoading(true)
-      setError(null)
-      
       const currentUser = await getCurrentUser()
-      console.log('🔍 Usuario cargado:', currentUser ? currentUser.email : 'No autenticado')
       setUser(currentUser)
-      
     } catch (err) {
       console.error('❌ Error al cargar usuario:', err.message)
       setError(err.message)
@@ -46,7 +44,6 @@ export const useUser = () => {
 
   // Función para actualizar el usuario después de login/registro
   const updateUser = (newUser) => {
-    console.log('🔄 Actualizando usuario:', newUser ? newUser.email : 'null')
     setUser(newUser)
     setError(null)
   }

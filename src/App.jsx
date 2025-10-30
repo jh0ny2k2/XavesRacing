@@ -44,12 +44,12 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [reload])
 
-  // Detectar cuando el usuario se autentica para forzar redirección
+  // Detectar cuando el usuario se autentica para activar redirección
   useEffect(() => {
-    if (isAuthenticated && user && !loading) {
+    if (isAuthenticated && !forceRedirect) {
       setForceRedirect(true)
     }
-  }, [isAuthenticated, user, loading])
+  }, [isAuthenticated, forceRedirect])
 
   if (configLoading || loading) {
     return (
@@ -63,9 +63,11 @@ function App() {
     return <Setup />
   }
 
+  const shouldShowDashboard = isAuthenticated || forceRedirect
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {(!isAuthenticated && !forceRedirect) ? (
+      {!shouldShowDashboard ? (
         showAuth ? (
           authMode === 'login' ? (
             <Login onSwitchToRegister={() => setAuthMode('register')} />
