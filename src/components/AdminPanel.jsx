@@ -100,15 +100,19 @@ const AdminPanel = () => {
   }
 
   // Función para calcular puntos basándose en las apuestas vs resultados reales
-  const calculatePoints = (userPredictions, actualResults) => {
+  const calculatePoints = (userPredictions, actualResults, raceType = 'normal') => {
     let totalPoints = 0
     
     console.log('🔍 Calculando puntos:')
     console.log('Predicciones del usuario:', userPredictions)
     console.log('Resultados reales:', actualResults)
+    console.log('Tipo de carrera:', raceType)
     
     // Las predicciones del usuario ya vienen como array desde BettingForm
     const userPositions = Array.isArray(userPredictions) ? userPredictions : []
+    
+    // Determinar cuántas posiciones considerar según el tipo de carrera
+    const positionsToConsider = raceType === 'sprint' ? 8 : 10
     
     // Verificar que tenemos datos válidos
     if (!userPositions || userPositions.length !== 10) {
@@ -121,8 +125,8 @@ const AdminPanel = () => {
       return 0
     }
 
-    // Comparar cada posición
-    for (let i = 0; i < 10; i++) {
+    // Comparar cada posición (solo las que corresponden al tipo de carrera)
+    for (let i = 0; i < positionsToConsider; i++) {
       const userPilot = userPositions[i]
       const actualPilot = actualResults[i]
       
@@ -133,8 +137,8 @@ const AdminPanel = () => {
         totalPoints += 3
         console.log(`✅ Posición exacta! +3 puntos (Total: ${totalPoints})`)
       } else {
-        // Verificar si el piloto está en una posición adyacente (±1)
-        const userPilotActualPosition = actualResults.indexOf(userPilot)
+        // Verificar si el piloto está en una posición adyacente (±1) dentro del rango considerado
+        const userPilotActualPosition = actualResults.slice(0, positionsToConsider).indexOf(userPilot)
         if (userPilotActualPosition !== -1) {
           const positionDifference = Math.abs(i - userPilotActualPosition)
           if (positionDifference === 1) {
@@ -146,7 +150,7 @@ const AdminPanel = () => {
       }
     }
 
-    console.log(`🏁 Puntos totales calculados: ${totalPoints}`)
+    console.log(`🏁 Puntos totales calculados para carrera ${raceType}: ${totalPoints}`)
     return totalPoints
   }
 
@@ -156,6 +160,18 @@ const AdminPanel = () => {
       console.log('🔄 Calculando puntos para todos los usuarios...')
       console.log('Race ID:', raceId)
       console.log('Resultados reales:', actualResults)
+      
+      // Obtener información de la carrera para conocer su tipo
+      const { data: raceData, error: raceError } = await supabase
+        .from('races')
+        .select('race_type')
+        .eq('id', raceId)
+        .single()
+
+      if (raceError) throw raceError
+
+      const raceType = raceData.race_type || 'normal'
+      console.log('🏁 Tipo de carrera:', raceType)
       
       // Obtener todas las apuestas para esta carrera
       const { data: bets, error: betsError } = await supabase
@@ -177,7 +193,7 @@ const AdminPanel = () => {
         console.log(`\n🎯 Procesando apuesta del usuario ${bet.user_id}:`)
         console.log('Predicciones:', bet.predictions)
         
-        const points = calculatePoints(bet.predictions, actualResults)
+        const points = calculatePoints(bet.predictions, actualResults, raceType)
         
         console.log(`👤 Usuario ${bet.user_id}: ${points} puntos`)
 

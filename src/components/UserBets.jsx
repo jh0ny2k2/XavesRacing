@@ -30,6 +30,7 @@ const UserBets = () => {
             name,
             location,
             date,
+            race_type,
             status
           )
         `)
@@ -90,7 +91,7 @@ const UserBets = () => {
               ]
 
               // Calculate points per position
-              pointsPerPosition = calculatePointsPerPosition(pilotIds, raceResults)
+              pointsPerPosition = calculatePointsPerPosition(pilotIds, raceResults, bet.races.race_type)
             }
           }
 
@@ -112,14 +113,22 @@ const UserBets = () => {
   }
 
   // Función para calcular puntos por posición individual
-  const calculatePointsPerPosition = (userPredictions, actualResults) => {
+  const calculatePointsPerPosition = (userPredictions, actualResults, raceType = 'normal') => {
     if (!userPredictions || !actualResults || userPredictions.length !== 10 || actualResults.length !== 10) {
       return Array(10).fill(0)
     }
 
+    // Determinar cuántas posiciones considerar según el tipo de carrera
+    const positionsToConsider = raceType === 'sprint' ? 8 : 10
     const pointsPerPosition = []
 
     for (let i = 0; i < 10; i++) {
+      // Si estamos más allá de las posiciones que se consideran para esta carrera, no hay puntos
+      if (i >= positionsToConsider) {
+        pointsPerPosition.push(0)
+        continue
+      }
+
       const userPilot = userPredictions[i]
       const actualPilot = actualResults[i]
       
@@ -127,8 +136,8 @@ const UserBets = () => {
         // Posición exacta: 3 puntos
         pointsPerPosition.push(3)
       } else {
-        // Verificar si el piloto está en una posición adyacente (±1)
-        const userPilotActualPosition = actualResults.indexOf(userPilot)
+        // Verificar si el piloto está en una posición adyacente (±1) dentro del rango considerado
+        const userPilotActualPosition = actualResults.slice(0, positionsToConsider).indexOf(userPilot)
         if (userPilotActualPosition !== -1) {
           const positionDifference = Math.abs(i - userPilotActualPosition)
           if (positionDifference === 1) {
@@ -319,6 +328,16 @@ const UserBets = () => {
                             })}
                           </span>
                         </div>
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <span className="text-lg sm:text-xl">{bet.races.race_type === 'sprint' ? '⚡' : '🏁'}</span>
+                          <span className={`font-semibold text-sm sm:text-base lg:text-lg px-2 py-1 rounded-full ${
+                            bet.races.race_type === 'sprint' 
+                              ? 'bg-orange-100 text-orange-700' 
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {bet.races.race_type === 'sprint' ? 'Sprint (Top 8)' : 'Normal (Top 10)'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     
@@ -339,9 +358,11 @@ const UserBets = () => {
                  <div className="p-4 sm:p-6 lg:p-8">
                    <div className="flex items-center space-x-3 sm:space-x-4 mb-6 sm:mb-8">
                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-                       <span className="text-white text-lg sm:text-xl lg:text-2xl">🏁</span>
+                       <span className="text-white text-lg sm:text-xl lg:text-2xl">{bet.races.race_type === 'sprint' ? '⚡' : '🏁'}</span>
                      </div>
-                     <h4 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Tu Predicción del Top 10</h4>
+                     <h4 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                       Tu Predicción del {bet.races.race_type === 'sprint' ? 'Top 8' : 'Top 10'}
+                     </h4>
                    </div>
                    
                    {/* Points Legend */}
@@ -359,6 +380,12 @@ const UserBets = () => {
                          <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gray-400 rounded-full shadow-sm"></div>
                          <span className="text-gray-700 font-semibold">0 puntos</span>
                        </div>
+                       {bet.races.race_type === 'sprint' && (
+                         <div className="flex items-center space-x-2 sm:space-x-3 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+                           <span className="text-orange-600 font-bold text-xs">⚡ SPRINT</span>
+                           <span className="text-orange-700 font-semibold text-xs">Solo Top 8 puntúan</span>
+                         </div>
+                       )}
                      </div>
                    </div>
                    

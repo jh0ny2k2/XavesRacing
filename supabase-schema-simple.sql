@@ -61,6 +61,7 @@ CREATE TABLE races (
   name VARCHAR(200) NOT NULL,
   location VARCHAR(100) NOT NULL,
   date DATE NOT NULL,
+  race_type VARCHAR(20) DEFAULT 'normal' CHECK (race_type IN ('normal', 'sprint')),
   status VARCHAR(20) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -119,24 +120,23 @@ INSERT INTO pilots (name, team, number, country) VALUES
 ('Esteban Ocon', 'Haas', 31, 'France');
 
 -- Insertar carreras de F1 2025
-INSERT INTO races (name, location, date, status) VALUES
-('Australian Grand Prix', 'Albert Park Circuit, Melbourne', '2025-03-16', 'upcoming'),
-('Chinese Grand Prix', 'Shanghai International Circuit', '2025-03-23', 'upcoming'),
-('Japanese Grand Prix', 'Suzuka International Racing Course', '2025-04-13', 'upcoming'),
-('Bahrain Grand Prix', 'Bahrain International Circuit', '2025-04-20', 'upcoming'),
-('Saudi Arabian Grand Prix', 'Jeddah Corniche Circuit', '2025-05-04', 'upcoming'),
-('Miami Grand Prix', 'Miami International Autodrome', '2025-05-11', 'upcoming'),
-('Monaco Grand Prix', 'Circuit de Monaco', '2025-05-25', 'upcoming'),
-('Spanish Grand Prix', 'Circuit de Barcelona-Catalunya', '2025-06-01', 'upcoming'),
-('Canadian Grand Prix', 'Circuit Gilles Villeneuve, Montreal', '2025-06-15', 'upcoming'),
-('British Grand Prix', 'Silverstone Circuit', '2025-07-06', 'upcoming'),
-('Belgian Grand Prix', 'Circuit de Spa-Francorchamps', '2025-07-27', 'upcoming'),
-('Hungarian Grand Prix', 'Hungaroring, Budapest', '2025-08-03', 'upcoming'),
-('Italian Grand Prix', 'Autodromo Nazionale di Monza', '2025-09-07', 'upcoming'),
-('Singapore Grand Prix', 'Marina Bay Street Circuit', '2025-10-05', 'upcoming'),
-('United States Grand Prix', 'Circuit of the Americas, Austin', '2025-10-19', 'upcoming'),
-('Brazil Grand Prix', 'Interlagos Circuit, São Paulo', '2025-11-09', 'upcoming'),
-('Abu Dhabi Grand Prix', 'Yas Marina Circuit', '2025-12-07', 'upcoming');
+INSERT INTO races (name, location, date, race_type, status) VALUES
+('Chinese Grand Prix', 'Shanghai International Circuit', '2025-03-23', 'sprint', 'upcoming'),
+('Japanese Grand Prix', 'Suzuka International Racing Course', '2025-04-13', 'normal', 'upcoming'),
+('Bahrain Grand Prix', 'Bahrain International Circuit', '2025-04-20', 'sprint', 'upcoming'),
+('Saudi Arabian Grand Prix', 'Jeddah Corniche Circuit', '2025-05-04', 'normal', 'upcoming'),
+('Miami Grand Prix', 'Miami International Autodrome', '2025-05-11', 'sprint', 'upcoming'),
+('Monaco Grand Prix', 'Circuit de Monaco', '2025-05-25', 'normal', 'upcoming'),
+('Spanish Grand Prix', 'Circuit de Barcelona-Catalunya', '2025-06-01', 'normal', 'upcoming'),
+('Canadian Grand Prix', 'Circuit Gilles Villeneuve, Montreal', '2025-06-15', 'normal', 'upcoming'),
+('British Grand Prix', 'Silverstone Circuit', '2025-07-06', 'normal', 'upcoming'),
+('Belgian Grand Prix', 'Circuit de Spa-Francorchamps', '2025-07-27', 'normal', 'upcoming'),
+('Hungarian Grand Prix', 'Hungaroring, Budapest', '2025-08-03', 'normal', 'upcoming'),
+('Italian Grand Prix', 'Autodromo Nazionale di Monza', '2025-09-07', 'normal', 'upcoming'),
+('Singapore Grand Prix', 'Marina Bay Street Circuit', '2025-10-05', 'normal', 'upcoming'),
+('United States Grand Prix', 'Circuit of the Americas, Austin', '2025-10-19', 'sprint', 'upcoming'),
+('Brazil Grand Prix', 'Interlagos Circuit, São Paulo', '2025-11-09', 'sprint', 'upcoming'),
+('Abu Dhabi Grand Prix', 'Yas Marina Circuit', '2025-12-07', 'normal', 'upcoming');
 
 -- Deshabilitar Row Level Security
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;

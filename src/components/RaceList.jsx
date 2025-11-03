@@ -13,7 +13,7 @@ export default function RaceList({ onSelectRace, selectedRace }) {
     try {
       const { data, error } = await supabase
         .from('races')
-        .select('*')
+        .select('*, race_type')
         .order('date', { ascending: true })
 
       if (error) throw error
@@ -138,6 +138,12 @@ export default function RaceList({ onSelectRace, selectedRace }) {
                 {race.name}
               </h3>
               <span className="text-2xl">🏎️</span>
+              {race.race_type === 'sprint' && (
+                <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md">
+                  <span>⚡</span>
+                  <span>SPRINT</span>
+                </span>
+              )}
             </div>
 
             {/* Location */}

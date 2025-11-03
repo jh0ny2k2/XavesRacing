@@ -1,19 +1,146 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../hooks/useUser'
 
+// Componente personalizado para el select con fotos
+const PilotSelect = ({ value, onChange, pilots, position, isSelected, pilotPhotos, selectedPilots }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const selectedPilot = pilots.find(p => p.id === value)
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.pilot-select-container')) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const getPilotPhoto = (pilotName) => {
+    const key = pilotName.toLowerCase().split(' ').pop() // Usar el apellido
+    return pilotPhotos[key] || '/logo.png' // Fallback a logo si no hay foto
+  }
+
+  const getPlaceholderText = (position) => {
+    if (position < 3) return '🏆 Podio'
+    if (position < 5) return '🏁 Top 5'
+    return position < 8 ? '🏁 Top 8' : '🏁 Top 10'
+  }
+
+  return (
+    <div className="relative pilot-select-container" style={{ zIndex: isOpen ? 50 : 1 }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-3 py-3 text-sm font-bold rounded-lg transition-all duration-200 flex items-center space-x-3 ${
+          isSelected
+            ? 'bg-white text-green-800 border-2 border-green-300'
+            : 'bg-slate-100 text-slate-700 border-2 border-slate-300 hover:border-red-400 focus:border-red-500'
+        } focus:outline-none focus:ring-2 focus:ring-red-300`}
+      >
+        {selectedPilot ? (
+          <>
+            <img 
+              src={getPilotPhoto(selectedPilot.name)} 
+              alt={selectedPilot.name}
+              className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+              onError={(e) => { e.target.src = '/logo.png' }}
+            />
+            <span className="flex-1 text-left">#{selectedPilot.number} {selectedPilot.name}</span>
+          </>
+        ) : (
+          <>
+            <div className="w-8 h-8 rounded-full bg-slate-300 flex items-center justify-center">
+              <span className="text-slate-500 text-xs">?</span>
+            </div>
+            <span className="flex-1 text-left text-slate-500">{getPlaceholderText(position)}</span>
+          </>
+        )}
+        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div 
+          className="absolute left-0 right-0 mt-1 bg-white border-2 border-slate-300 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+          style={{ 
+            zIndex: 100,
+            top: '100%'
+          }}
+        >
+          {pilots.map((pilot) => {
+            const isDisabled = selectedPilots.includes(pilot.id) && value !== pilot.id
+            return (
+              <button
+                key={pilot.id}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => {
+                  if (!isDisabled) {
+                    onChange(pilot.id)
+                    setIsOpen(false)
+                  }
+                }}
+                className={`w-full px-3 py-3 text-left flex items-center space-x-3 transition-colors ${
+                  isDisabled 
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                    : 'hover:bg-red-50 hover:text-red-700'
+                } ${value === pilot.id ? 'bg-green-50 text-green-700' : ''}`}
+              >
+                <img 
+                  src={getPilotPhoto(pilot.name)} 
+                  alt={pilot.name}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                  onError={(e) => { e.target.src = '/logo.png' }}
+                />
+                <div className="flex-1">
+                  <div className="font-bold">#{pilot.number} {pilot.name}</div>
+                  <div className="text-xs text-slate-500">{pilot.team}</div>
+                </div>
+                {isDisabled && <span className="text-xs text-slate-400">Ya seleccionado</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const BettingForm = ({ race }) => {
   const [pilots, setPilots] = useState([])
-  const [selectedPilots, setSelectedPilots] = useState(Array(10).fill(null))
+  const maxPositions = race.race_type === 'sprint' ? 8 : 10
+  const [selectedPilots, setSelectedPilots] = useState(Array(maxPositions).fill(null))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [existingBet, setExistingBet] = useState(null)
+  const [pilotPhotos, setPilotPhotos] = useState({})
   const { user } = useUser()
 
   useEffect(() => {
     fetchPilots()
     fetchExistingBet()
+    loadPilotPhotos()
   }, [race.id])
+
+  const loadPilotPhotos = async () => {
+    try {
+      const response = await fetch('/pilotos.json')
+      const photos = await response.json()
+      setPilotPhotos(photos)
+    } catch (error) {
+      console.error('Error loading pilot photos:', error)
+      // Fallback a un objeto vacío si no se pueden cargar las fotos
+      setPilotPhotos({})
+    }
+  }
 
   const fetchPilots = async () => {
     try {
@@ -118,7 +245,7 @@ const BettingForm = ({ race }) => {
     e.preventDefault()
     
     if (selectedPilots.some(pilot => pilot === null)) {
-      alert('Por favor, selecciona un piloto para cada posición del top 10')
+      alert(`Por favor, selecciona un piloto para cada posición del top ${maxPositions}`)
       return
     }
 
@@ -149,7 +276,7 @@ const BettingForm = ({ race }) => {
 
   const getCompletionPercentage = () => {
     const filled = selectedPilots.filter(pilot => pilot !== null).length
-    return Math.round((filled / 10) * 100)
+    return Math.round((filled / maxPositions) * 100)
   }
 
   if (loading) {
@@ -163,7 +290,7 @@ const BettingForm = ({ race }) => {
         
         {/* Grid Skeleton */}
         <div className="grid grid-cols-2 gap-4">
-          {[...Array(10)].map((_, i) => (
+          {[...Array(maxPositions)].map((_, i) => (
             <div key={i} className="bg-white rounded-xl shadow-lg border border-slate-200 p-4 animate-pulse">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-slate-200 rounded-xl"></div>
@@ -186,8 +313,19 @@ const BettingForm = ({ race }) => {
               <span className="text-3xl">🏁</span>
             </div>
             <div>
-              <h3 className="text-2xl font-bold">Tu Predicción</h3>
+              <div className="flex items-center space-x-3">
+                <h3 className="text-2xl font-bold">Tu Predicción</h3>
+                {race.race_type === 'sprint' && (
+                  <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg">
+                    <span>⚡</span>
+                    <span>SPRINT</span>
+                  </span>
+                )}
+              </div>
               <p className="text-red-200 font-medium">{race.name}</p>
+              <p className="text-red-300 text-sm">
+                {race.race_type === 'sprint' ? 'Top 8 - Carrera Sprint' : 'Top 10 - Carrera Normal'}
+              </p>
             </div>
           </div>
           <div className="text-right">
@@ -220,12 +358,15 @@ const BettingForm = ({ race }) => {
         <div className="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 shadow-2xl">
           <div className="text-center mb-6">
             <h4 className="text-2xl font-bold text-white mb-2">🏁 PARRILLA DE SALIDA 🏁</h4>
-            <p className="text-slate-300">Predice el orden de llegada del Top 10</p>
+            <p className="text-slate-300">
+              Predice el orden de llegada del Top {maxPositions}
+              {race.race_type === 'sprint' && <span className="text-yellow-400 font-bold"> - CARRERA SPRINT ⚡</span>}
+            </p>
           </div>
 
           {/* Grid Layout - 2 columns like F1 starting grid */}
           <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
-            {[...Array(10)].map((_, position) => {
+            {[...Array(maxPositions)].map((_, position) => {
               const selectedPilot = selectedPilots[position] ? getPilotById(selectedPilots[position]) : null
               const isSelected = selectedPilot !== null
               const isLeftColumn = position % 2 === 0
@@ -258,32 +399,15 @@ const BettingForm = ({ race }) => {
 
                     <div className="p-4">
                       {/* Pilot Selection */}
-                      <select
-                        value={selectedPilots[position] || ''}
-                        onChange={(e) => handlePilotSelect(position, e.target.value || null)}
-                        className={`w-full px-3 py-3 text-sm font-bold rounded-lg transition-all duration-200 ${
-                          isSelected
-                            ? 'bg-white text-green-800 border-2 border-green-300'
-                            : 'bg-slate-100 text-slate-700 border-2 border-slate-300 hover:border-red-400 focus:border-red-500'
-                        } focus:outline-none focus:ring-2 focus:ring-red-300`}
-                        required
-                      >
-                        <option value="">
-                          {position < 3 ? '🏆 Podio' : position < 5 ? '🏁 Top 5' : '🏁 Top 10'}
-                        </option>
-                        {pilots.map((pilot) => {
-                          const isDisabled = selectedPilots.includes(pilot.id) && selectedPilots[position] !== pilot.id
-                          return (
-                            <option 
-                              key={pilot.id} 
-                              value={pilot.id}
-                              disabled={isDisabled}
-                            >
-                              #{pilot.number} {pilot.name}
-                            </option>
-                          )
-                        })}
-                      </select>
+                      <PilotSelect
+                        value={selectedPilots[position]}
+                        onChange={(pilotId) => handlePilotSelect(position, pilotId)}
+                        pilots={pilots}
+                        position={position + 1}
+                        isSelected={isSelected}
+                        pilotPhotos={pilotPhotos}
+                        selectedPilots={selectedPilots.filter(p => p !== null)}
+                      />
 
                       {/* Selected Pilot Info */}
                       {selectedPilot && (
@@ -326,7 +450,7 @@ const BettingForm = ({ race }) => {
                 <div>
                   <p className="font-bold text-gray-900">Estado de tu parrilla</p>
                   <p className="text-sm text-slate-600">
-                    {getCompletionPercentage() === 100 ? 'Parrilla completa - ¡Lista para la carrera!' : `${10 - selectedPilots.filter(p => p !== null).length} posiciones vacías`}
+                    {getCompletionPercentage() === 100 ? 'Parrilla completa - ¡Lista para la carrera!' : `${maxPositions - selectedPilots.filter(p => p !== null).length} posiciones vacías`}
                   </p>
                 </div>
               </div>
