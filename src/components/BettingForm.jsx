@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../hooks/useUser'
 
 // Componente personalizado para el select con fotos
-const PilotSelect = ({ value, onChange, pilots, position, isSelected, pilotPhotos, selectedPilots }) => {
+const PilotSelect = ({ value, onChange, pilots, position, isSelected, pilotPhotos, selectedPilots, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false)
   const selectedPilot = pilots.find(p => p.id === value)
 
@@ -34,15 +34,16 @@ const PilotSelect = ({ value, onChange, pilots, position, isSelected, pilotPhoto
   }
 
   return (
-    <div className="relative pilot-select-container" style={{ zIndex: isOpen ? 50 : 1 }}>
+    <div className={`relative pilot-select-container ${disabled ? 'opacity-70 cursor-not-allowed' : ''}`} style={{ zIndex: isOpen ? 50 : 1 }}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { if (!disabled) setIsOpen(!isOpen) }}
+        disabled={disabled}
         className={`w-full px-3 py-3 text-sm font-bold rounded-lg transition-all duration-200 flex items-center space-x-3 ${
           isSelected
             ? 'bg-white text-green-800 border-2 border-green-300'
             : 'bg-slate-100 text-slate-700 border-2 border-slate-300 hover:border-red-400 focus:border-red-500'
-        } focus:outline-none focus:ring-2 focus:ring-red-300`}
+        } focus:outline-none focus:ring-2 focus:ring-red-300 ${disabled ? 'pointer-events-none' : ''}`}
       >
         {selectedPilot ? (
           <>
@@ -67,7 +68,7 @@ const PilotSelect = ({ value, onChange, pilots, position, isSelected, pilotPhoto
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div 
           className="absolute left-0 right-0 w-full mt-1 bg-white border-2 border-slate-300 rounded-lg shadow-xl max-h-72 sm:max-h-60 overflow-y-auto"
           style={{ 
@@ -149,6 +150,7 @@ const BettingForm = ({ race }) => {
   }
 
   const raceStart = getRaceStartDateTime()
+  const raceCloseDisplay = (() => { const d = new Date(raceStart); d.setHours(d.getHours() - 1); return d })()
   const now = new Date()
   const isBettingClosed = now >= raceStart || race.status === 'active' || race.status === 'completed'
 
@@ -156,7 +158,7 @@ const BettingForm = ({ race }) => {
     fetchPilots()
     fetchExistingBet()
     loadPilotPhotos()
-  }, [race.id])
+  }, [race.id, user?.id])
 
   const loadPilotPhotos = async () => {
     try {
@@ -237,6 +239,13 @@ const BettingForm = ({ race }) => {
       }
 
 
+      // Si ya existe una apuesta para esta carrera, bloquear nuevas acciones
+      if (existingBet) {
+        alert('Ya has realizado una apuesta para esta carrera. No puedes crear otra ni modificarla.')
+        return
+      }
+
+
       const betData = {
         user_id: user.id,
         race_id: race.id,
@@ -275,6 +284,12 @@ const BettingForm = ({ race }) => {
     // Bloquear si ya cerró el tiempo de apuestas
     if (isBettingClosed) {
       alert('Las apuestas están cerradas: la carrera ya inició.')
+      return
+    }
+
+    // Bloquear si ya existe una apuesta del usuario para esta carrera
+    if (existingBet) {
+      alert('Ya has realizado una apuesta para esta carrera. No puedes realizar otra ni modificarla.')
       return
     }
 
@@ -380,8 +395,8 @@ const BettingForm = ({ race }) => {
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center space-x-3">
             <span className="text-2xl">💡</span>
             <div>
-              <p className="text-white font-medium">Apuesta existente encontrada</p>
-              <p className="text-red-200 text-sm">Puedes modificar tu predicción hasta que comience la carrera.</p>
+              <p className="text-white font-medium">Apuesta registrada</p>
+              <p className="text-red-200 text-sm">Ya has realizado tu apuesta para esta carrera. No puedes realizar otra ni modificarla.</p>
             </div>
           </div>
         )}
@@ -397,7 +412,7 @@ const BettingForm = ({ race }) => {
               {race.race_type === 'sprint' && <span className="text-yellow-400 font-bold"> - CARRERA SPRINT ⚡</span>}
             </p>
             <p className="text-slate-400 text-sm mt-2">
-              Cierre de apuestas: {raceStart.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+              Cierre de apuestas: {raceCloseDisplay.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
             </p>
           </div>
 
@@ -444,6 +459,7 @@ const BettingForm = ({ race }) => {
                         isSelected={isSelected}
                         pilotPhotos={pilotPhotos}
                         selectedPilots={selectedPilots.filter(p => p !== null)}
+                        disabled={!!existingBet || saving || isBettingClosed || race.status === 'completed' || race.status === 'finished'}
                       />
 
                       {/* Selected Pilot Info */}
@@ -503,9 +519,9 @@ const BettingForm = ({ race }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={saving || race.status === 'completed' || !isFormValid() || isBettingClosed}
+              disabled={saving || race.status === 'completed' || !isFormValid() || isBettingClosed || !!existingBet}
               className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 ${
-                isFormValid() && race.status !== 'completed' && !isBettingClosed
+                isFormValid() && race.status !== 'completed' && !isBettingClosed && !existingBet
                   ? 'bg-gradient-to-r from-red-600 via-red-700 to-red-800 hover:from-red-700 hover:via-red-800 hover:to-red-900 text-white shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
@@ -522,7 +538,7 @@ const BettingForm = ({ race }) => {
               ) : !isFormValid() ? (
                 '🏁 Completa la parrilla'
               ) : existingBet ? (
-                '🔄 Actualizar Parrilla'
+                '✅ Apuesta ya realizada'
               ) : (
                 '🚀 Confirmar Parrilla'
               )}

@@ -493,12 +493,7 @@ const UserBets = () => {
                         </div>
                       </div>
                       
-                      {bet.races.status === 'upcoming' && (
-                        <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-2 rounded-xl border border-blue-200">
-                          <span className="text-lg">✏️</span>
-                          <span className="text-blue-700 font-bold">Modificable</span>
-                        </div>
-                      )}
+                      
                     </div>
                   </div>
                 </div>

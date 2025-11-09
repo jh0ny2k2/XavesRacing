@@ -170,13 +170,17 @@ export default function RaceList({ onSelectRace, selectedRace }) {
               <div className="flex items-center space-x-2 text-slate-600">
                 <span className="text-lg">📅</span>
                 <span className="font-medium">
-                  {new Date(race.Fecha || race.start_datetime || race.date).toLocaleString('es-ES', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  {(() => {
+                    const d = new Date(race.Fecha || race.start_datetime || race.date)
+                    d.setHours(d.getHours() - 1)
+                    return d.toLocaleString('es-ES', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  })()}
                 </span>
               </div>
               
