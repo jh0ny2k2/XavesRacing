@@ -69,7 +69,7 @@ const PilotSelect = ({ value, onChange, pilots, position, isSelected, pilotPhoto
 
       {isOpen && (
         <div 
-          className="absolute left-0 right-0 mt-1 bg-white border-2 border-slate-300 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+          className="absolute left-0 right-0 w-full mt-1 bg-white border-2 border-slate-300 rounded-lg shadow-xl max-h-72 sm:max-h-60 overflow-y-auto"
           style={{ 
             zIndex: 100,
             top: '100%'
@@ -123,6 +123,34 @@ const BettingForm = ({ race }) => {
   const [existingBet, setExistingBet] = useState(null)
   const [pilotPhotos, setPilotPhotos] = useState({})
   const { user } = useUser()
+  
+  // Calcular la fecha/hora de inicio de la carrera priorizando columna "Fecha"
+  const getRaceStartDateTime = () => {
+    // 1) Usar columna "Fecha" si existe en la tabla races (fecha y hora)
+    if (race.Fecha) {
+      const d = new Date(race.Fecha)
+      if (!isNaN(d.getTime())) return d
+    }
+
+    // 2) Usar start_datetime si existe
+    if (race.start_datetime) {
+      const d = new Date(race.start_datetime)
+      if (!isNaN(d.getTime())) return d
+    }
+
+    // 3) Usar combinación date + start_time si existe
+    if (race.start_time) {
+      const d = new Date(`${race.date}T${race.start_time}:00`)
+      if (!isNaN(d.getTime())) return d
+    }
+
+    // 4) Fallback a medianoche del día de la carrera
+    return new Date(`${race.date}T00:00:00`)
+  }
+
+  const raceStart = getRaceStartDateTime()
+  const now = new Date()
+  const isBettingClosed = now >= raceStart || race.status === 'active' || race.status === 'completed'
 
   useEffect(() => {
     fetchPilots()
@@ -244,6 +272,12 @@ const BettingForm = ({ race }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Bloquear si ya cerró el tiempo de apuestas
+    if (isBettingClosed) {
+      alert('Las apuestas están cerradas: la carrera ya inició.')
+      return
+    }
+
     if (selectedPilots.some(pilot => pilot === null)) {
       alert(`Por favor, selecciona un piloto para cada posición del top ${maxPositions}`)
       return
@@ -362,10 +396,13 @@ const BettingForm = ({ race }) => {
               Predice el orden de llegada del Top {maxPositions}
               {race.race_type === 'sprint' && <span className="text-yellow-400 font-bold"> - CARRERA SPRINT ⚡</span>}
             </p>
+            <p className="text-slate-400 text-sm mt-2">
+              Cierre de apuestas: {raceStart.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+            </p>
           </div>
 
-          {/* Grid Layout - 2 columns like F1 starting grid */}
-          <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+          {/* Grid Layout - Responsive: 1 columna en móvil, 2 en >=sm */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto">
             {[...Array(maxPositions)].map((_, position) => {
               const selectedPilot = selectedPilots[position] ? getPilotById(selectedPilots[position]) : null
               const isSelected = selectedPilot !== null
@@ -374,7 +411,7 @@ const BettingForm = ({ race }) => {
               return (
                 <div 
                   key={position} 
-                  className={`relative ${isLeftColumn ? 'justify-self-end' : 'justify-self-start'} w-full max-w-sm`}
+                  className={`relative ${isLeftColumn ? 'sm:justify-self-end' : 'sm:justify-self-start'} w-full max-w-full sm:max-w-sm`}
                 >
                   {/* Grid Position Marker */}
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
@@ -466,9 +503,9 @@ const BettingForm = ({ race }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={saving || race.status === 'completed' || !isFormValid()}
+              disabled={saving || race.status === 'completed' || !isFormValid() || isBettingClosed}
               className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 ${
-                isFormValid() && race.status !== 'completed'
+                isFormValid() && race.status !== 'completed' && !isBettingClosed
                   ? 'bg-gradient-to-r from-red-600 via-red-700 to-red-800 hover:from-red-700 hover:via-red-800 hover:to-red-900 text-white shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
@@ -480,6 +517,8 @@ const BettingForm = ({ race }) => {
                 </div>
               ) : race.status === 'completed' ? (
                 '🏁 Carrera finalizada'
+              ) : isBettingClosed ? (
+                '⏳ Apuestas cerradas'
               ) : !isFormValid() ? (
                 '🏁 Completa la parrilla'
               ) : existingBet ? (
@@ -489,10 +528,10 @@ const BettingForm = ({ race }) => {
               )}
             </button>
 
-            {race.status === 'completed' && (
+            {(race.status === 'completed' || isBettingClosed) && (
               <div className="text-center p-4 bg-gray-100 rounded-xl">
                 <p className="text-gray-600 font-medium">
-                  🏁 Esta carrera ya ha finalizado. No se pueden hacer más predicciones.
+                  🏁 Apuestas cerradas. {race.status === 'completed' ? 'Esta carrera ya ha finalizado.' : 'La carrera ya ha iniciado.'}
                 </p>
               </div>
             )}

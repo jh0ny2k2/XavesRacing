@@ -90,6 +90,12 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, onCollapseChange }) => {
       iconCollapsed: '🎯'
     },
     {
+      id: 'finished_bets',
+      label: 'Apuestas Finalizadas',
+      icon: '✅',
+      iconCollapsed: '✅'
+    },
+    {
       id: 'leaderboard',
       label: 'Clasificación',
       icon: '🏆',
@@ -104,6 +110,12 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, onCollapseChange }) => {
       label: 'Admin Panel',
       icon: '⚙️',
       iconCollapsed: '⚙️'
+    },
+    {
+      id: 'admin_bets',
+      label: 'Apuestas por Carrera',
+      icon: '📋',
+      iconCollapsed: '📋'
     }
   ] : []
 
@@ -152,6 +164,7 @@ const Sidebar = ({ activeTab, setActiveTab, onSignOut, onCollapseChange }) => {
 
       {/* Sidebar */}
       <div className={`
+        ${isMobileMenuOpen ? 'block' : 'hidden'} lg:block
         fixed top-4 left-4 rounded-2xl h-full bg-white border-r border-gray-200 flex flex-col z-40 transition-all duration-300 ease-in-out shadow-2xl
         ${isCollapsed ? 'w-16' : 'w-64'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}

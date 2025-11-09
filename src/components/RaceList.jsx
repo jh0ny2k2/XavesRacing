@@ -18,9 +18,16 @@ export default function RaceList({ onSelectRace, selectedRace }) {
 
       if (error) throw error
       
-      // Filtrar para obtener solo la próxima carrera
+      // Filtrar para obtener solo la próxima carrera (prioriza "Fecha" y luego start_datetime)
       const now = new Date()
-      const upcomingRaces = data.filter(race => new Date(race.date) >= now)
+      const upcomingRaces = data.filter(race => {
+        const start = race.Fecha
+          ? new Date(race.Fecha)
+          : race.start_datetime
+            ? new Date(race.start_datetime)
+            : new Date(race.date)
+        return start >= now && race.status !== 'completed'
+      })
       const nextRace = upcomingRaces.length > 0 ? [upcomingRaces[0]] : []
       
       setRaces(nextRace)
@@ -70,18 +77,24 @@ export default function RaceList({ onSelectRace, selectedRace }) {
     }
   }
 
-  const getTimeUntilRace = (raceDate) => {
+  const getTimeUntilRace = (race) => {
     const now = new Date()
-    const race = new Date(raceDate)
-    const diffTime = race - now
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const start = race.Fecha
+      ? new Date(race.Fecha)
+      : race.start_datetime
+        ? new Date(race.start_datetime)
+        : new Date(race.date)
+    const diffMs = start - now
     
-    if (diffDays < 0) return 'Finalizada'
-    if (diffDays === 0) return 'Hoy'
-    if (diffDays === 1) return 'Mañana'
-    if (diffDays < 7) return `En ${diffDays} días`
-    if (diffDays < 30) return `En ${Math.ceil(diffDays / 7)} semanas`
-    return `En ${Math.ceil(diffDays / 30)} meses`
+    if (diffMs <= 0) return race.status === 'completed' ? 'Finalizada' : 'En curso'
+    
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+
+    if (diffDays > 0) return `En ${diffDays} día${diffDays !== 1 ? 's' : ''}`
+    if (diffHours > 0) return `En ${diffHours} hora${diffHours !== 1 ? 's' : ''}`
+    return `En ${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`
   }
 
   if (loading) {
@@ -157,17 +170,19 @@ export default function RaceList({ onSelectRace, selectedRace }) {
               <div className="flex items-center space-x-2 text-slate-600">
                 <span className="text-lg">📅</span>
                 <span className="font-medium">
-                  {new Date(race.date).toLocaleDateString('es-ES', {
+                  {new Date(race.Fecha || race.start_datetime || race.date).toLocaleString('es-ES', {
                     weekday: 'short',
                     month: 'short',
-                    day: 'numeric'
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
                   })}
                 </span>
               </div>
               
               <div className="flex items-center space-x-2 text-slate-600">
                 <span className="text-lg">⏰</span>
-                <span className="font-medium">{getTimeUntilRace(race.date)}</span>
+                <span className="font-medium">{getTimeUntilRace(race)}</span>
               </div>
             </div>
           </div>

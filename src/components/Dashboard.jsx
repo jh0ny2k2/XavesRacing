@@ -6,6 +6,8 @@ import UserBets from './UserBets'
 import Sidebar from './Sidebar'
 import AdminPanel from './AdminPanel'
 import Leaderboard from './Leaderboard'
+import AdminBets from './AdminBets'
+import FinishedBets from './FinishedBets'
 
 const Dashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('races')
@@ -38,18 +40,24 @@ const Dashboard = ({ user }) => {
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
                   {activeTab === 'races' ? '🏁 Próximas Carreras' : 
                    activeTab === 'mybets' ? '🎯 Mis Apuestas' :
+                   activeTab === 'finished_bets' ? '✅ Apuestas Finalizadas' :
                    activeTab === 'leaderboard' ? '🏆 Clasificación General' :
-                   activeTab === 'admin' ? '⚙️ Panel de Administración' : '🏁 Dashboard'}
+                   activeTab === 'admin' ? '⚙️ Panel de Administración' :
+                   activeTab === 'admin_bets' ? '📋 Apuestas por Carrera' : '🏁 Dashboard'}
                 </h1>
                 <p className="text-gray-600 text-base lg:text-lg">
                   {activeTab === 'races' 
                     ? 'Selecciona una carrera y haz tu predicción' 
                     : activeTab === 'mybets'
                     ? 'Tu historial de predicciones y puntos'
+                    : activeTab === 'finished_bets'
+                    ? 'Apuestas de todos los usuarios en carreras completadas'
                     : activeTab === 'leaderboard'
                     ? 'Ranking de todos los participantes'
                     : activeTab === 'admin'
                     ? 'Gestiona los resultados de las carreras'
+                    : activeTab === 'admin_bets'
+                    ? 'Revisa todas las apuestas agrupadas por carrera'
                     : 'Bienvenido al dashboard'
                   }
                 </p>
@@ -164,6 +172,22 @@ const Dashboard = ({ user }) => {
             <div className="max-w-6xl mx-auto">
               <div className=" rounded-xl transition-shadow duration-200">
                 <AdminPanel />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_bets' && (
+            <div className="max-w-6xl mx-auto">
+              <div className=" rounded-xl transition-shadow duration-200">
+                <AdminBets />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'finished_bets' && (
+            <div className="max-w-6xl mx-auto">
+              <div className=" rounded-xl transition-shadow duration-200">
+                <FinishedBets />
               </div>
             </div>
           )}

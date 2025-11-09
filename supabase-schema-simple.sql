@@ -61,6 +61,7 @@ CREATE TABLE races (
   name VARCHAR(200) NOT NULL,
   location VARCHAR(100) NOT NULL,
   date DATE NOT NULL,
+  start_datetime TIMESTAMP WITH TIME ZONE,
   race_type VARCHAR(20) DEFAULT 'normal' CHECK (race_type IN ('normal', 'sprint')),
   status VARCHAR(20) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
